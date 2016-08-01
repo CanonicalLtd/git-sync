@@ -82,6 +82,8 @@ def get_filter(opts=None):
                 logging.debug('Not syncing file: %s' % f)
                 _filter.append(f)
             elif (os.path.isdir(_f) and not ('test' in _f)):
+                logging.debug('Not syncing directory: %s' % f)
+                _filter.append(f)
             elif (os.path.isdir(_f) and not
                   os.path.isfile(os.path.join(_f, '__init__.py'))):
                 logging.debug('Not syncing directory: %s' % f)
