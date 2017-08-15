@@ -25,6 +25,9 @@ import sys
 import tempfile
 import shutil
 
+from glob import fnmatch
+
+
 def clone(dest, source, branch=None):
     logging.info('Checking out %s to %s.' % (branch, dest))
     cmd = ['git', 'clone', '--quiet', '--depth=1']
@@ -35,28 +38,17 @@ def clone(dest, source, branch=None):
     subprocess.check_call(cmd)
     return dest
 
-def ensure_init(path):
-    '''
-    ensure directories leading up to path are importable, omitting
-    parent directory, eg path='/hooks/helpers/foo'/:
-        hooks/
-        hooks/helpers/__init__.py
-        hooks/helpers/foo/__init__.py
-    '''
-    for d, dirs, files in os.walk(os.path.join(*path.split('/')[:2])):
-        _i = os.path.join(d, '__init__.py')
-        if not os.path.exists(_i):
-            logging.info('Adding missing __init__.py: %s' % _i)
-            open(_i, 'wb').close()
 
 def sync(src, dest):
     if os.path.exists(dest):
         logging.debug('Removing existing directory: %s' % dest)
         shutil.rmtree(dest)
-    logging.info('Syncing directory: %s -> %s.' % (src, dest))
 
-    shutil.copytree(src, dest, ignore=get_filter())
-    ensure_init(dest)
+    for e in os.listdir(src):
+        if os.path.isdir(e):
+            logging.info('Syncing directory: %s -> %s.' % (src, dest))
+            shutil.copytree(src, dest, ignore=get_filter())
+
 
 def get_filter(opts=None):
     opts = opts or []
@@ -66,29 +58,30 @@ def get_filter(opts=None):
 
     def _filter(dir, ls):
         incs = [opt.split('=').pop() for opt in opts if 'inc=' in opt]
-        _filter = []
+        filtered = []
         for f in ls:
             _f = os.path.join(dir, f)
 
             if not os.path.isdir(_f) and not _f.endswith('.py') and incs:
-                if True not in [fnmatch(_f, inc) for inc in incs]:
+                if True not in [fnmatch.fnmatch(_f, inc) for inc in incs]:
                     logging.debug('Not syncing %s, does not match include '
                                   'filters (%s)' % (_f, incs))
-                    _filter.append(f)
+                    filtered.append(f)
                 else:
                     logging.debug('Including file, which matches include '
                                   'filters (%s): %s' % (incs, _f))
             elif (os.path.isfile(_f) and not _f.endswith('.py')):
                 logging.debug('Not syncing file: %s' % f)
-                _filter.append(f)
+                filtered.append(f)
             elif (os.path.isdir(_f) and ('test' in f)):
                 logging.debug('Not syncing directory: %s' % f)
-                _filter.append(f)
+                filtered.append(f)
             elif (os.path.isdir(_f) and not
                   os.path.isfile(os.path.join(_f, '__init__.py'))):
                 logging.debug('Not syncing directory: %s' % f)
-                _filter.append(f)
-        return _filter
+                filtered.append(f)
+        return filtered
+
     return _filter
 
 if __name__ == '__main__':
