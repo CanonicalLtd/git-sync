@@ -44,10 +44,12 @@ def sync(src, dest):
         logging.debug('Removing existing directory: %s' % dest)
         shutil.rmtree(dest)
 
+    allowed = ["ceph"]
     for e in os.listdir(src):
-        if os.path.isdir(e):
-            logging.info('Syncing directory: %s -> %s.' % (src, dest))
-            shutil.copytree(src, dest, ignore=get_filter())
+        if e in allowed:
+            logging.info('Syncing directory: %s -> %s.' % (e, dest))
+            shutil.copytree(os.path.join(src, e), os.path.join(dest, e),
+                            ignore=get_filter())
 
 
 def get_filter(opts=None):
