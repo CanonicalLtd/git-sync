@@ -39,7 +39,7 @@ def clone(dest, source, branch=None):
     return dest
 
 
-def sync(src, dest):
+def sync(src, dest, rename=None):
     if os.path.exists(dest):
         logging.debug('Removing existing directory: %s' % dest)
         shutil.rmtree(dest)
@@ -50,6 +50,8 @@ def sync(src, dest):
             logging.info('Syncing directory: %s -> %s.' % (e, dest))
             shutil.copytree(os.path.join(src, e), os.path.join(dest, e),
                             ignore=get_filter())
+            if rename:
+                shutil.move(os.path.join(dest, e), os.path.join(dest, rename))
 
 
 def get_filter(opts=None):
@@ -96,6 +98,8 @@ if __name__ == '__main__':
                       help='git branch')
     parser.add_option('-d', '--destination', action='store', dest='dest_dir',
                       help='sync destination dir')
+    parser.add_option('-r', '--rename', action='store', dest='rename',
+                      help='rename the cloned repository')
 
     (opts, args) = parser.parse_args()
 
@@ -111,6 +115,10 @@ if __name__ == '__main__':
         config['source'] = opts.source
     if opts.dest_dir:
         config['dest'] = opts.dest_dir
+    if opts.rename:
+        config['rename'] = opts.rename
+    else:
+        config['rename'] = None
 
     if 'source' not in config:
         logging.error('No source repo specified as an option')
@@ -127,7 +135,7 @@ if __name__ == '__main__':
 
     try:
         checkout = clone(tmpd, config['source'], config['branch'])
-        sync(checkout, config['dest'])
+        sync(checkout, config['dest'], config['rename'])
     except Exception as e:
         logging.error("Could not sync: %s" % e)
         raise e
