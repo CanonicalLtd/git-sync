@@ -44,7 +44,7 @@ def sync(src, dest, rename=None):
         logging.debug('Removing existing directory: %s' % dest)
         shutil.rmtree(dest)
 
-    allowed = ["ceph"]
+    allowed = ["charms_ceph"]
     for e in os.listdir(src):
         if e in allowed:
             logging.info('Syncing directory: %s -> %s.' % (e, dest))
